@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Колесо Фортуны</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #111011; color: #e0e0e0; min-height: 100vh; overflow-x: hidden; }
+        .header { text-align: center; padding: 30px 20px 10px; }
+        .header h1 { font-size: 2.4rem; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #ef4444, #8b5cf6, #3b82f6); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientShift 4s ease infinite; }
+        @keyframes gradientShift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .toolbar { display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 8px; }
+        .btn-add-wheel { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; padding: 14px 32px; border-radius: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35); font-family: 'Inter', sans-serif; }
+        .btn-add-wheel:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5); }
+        .btn-add-wheel:active { transform: translateY(0); }
+        .btn-delete-all { background: none; border: none; color: #666; font-size: 0.8rem; cursor: pointer; text-decoration: underline; font-family: 'Inter', sans-serif; padding: 4px 8px; transition: color 0.2s; }
+        .btn-delete-all:hover { color: #ef4444; }
+        .wheels-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 24px; padding: 10px 30px 40px; max-width: 1600px; margin: 0 auto; }
+        @media (max-width: 480px) { .wheels-container { grid-template-columns: 1fr; padding: 10px 12px 40px; } }
+        .wheel-card { background: #1b1b1b; border-radius: 20px; padding: 24px; border: 1px solid #333333; transition: border-color 0.3s, box-shadow 0.3s; }
+        .wheel-card:hover { border-color: #444444; box-shadow: 0 4px 30px rgba(0,0,0,0.3); }
+        .wheel-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 8px; }
+        .wheel-title-input { background: transparent; border: none; color: #fff; font-size: 1.1rem; font-weight: 700; font-family: 'Inter', sans-serif; outline: none; border-bottom: 2px solid transparent; padding: 2px 4px; transition: border-color 0.3s; width: 200px; }
+        .wheel-title-input:focus { border-bottom-color: #6366f1; }
+        .wheel-title-input::placeholder { color: #555; }
+        .wheel-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .btn-icon { width: 34px; height: 34px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; border: 1px solid rgba(120,120,120,0.3); background: rgba(120,120,120,0.15); color: #999; }
+        .btn-icon:hover { background: rgba(120,120,120,0.3); border-color: #999; color: #bbb; }
+        .btn-icon svg { width: 16px; height: 16px; }
+        .btn-delete { border-color: rgba(239, 68, 68, 0.3) !important; background: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; }
+        .btn-delete:hover { background: rgba(239, 68, 68, 0.3) !important; border-color: #ef4444 !important; color: #ef4444 !important; }
+        .btn-delete svg { width: 14px; height: 14px; }
+        .wheel-wrapper { position: relative; width: 100%; aspect-ratio: 1; max-width: 350px; margin: 0 auto 20px; }
+        .wheel-canvas { width: 100%; height: 100%; border-radius: 50%; filter: drop-shadow(0 4px 20px rgba(0,0,0,0.4)); display: block; }
+        .wheel-pointer { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        .wheel-pointer svg { width: 64px; height: 72px; }
+        .spin-btn { width: 100%; padding: 22px 14px; border: none; border-radius: 12px; font-size: 1.45rem; font-weight: 700; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; background: linear-gradient(135deg, #f59e0b, #ef4444, #f59e0b, #ef4444); background-size: 300% 300%; animation: btnGradient 3s ease infinite; color: white; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); margin-bottom: 18px; font-family: 'Inter', sans-serif; letter-spacing: 1px; text-align: center; }
+        .spin-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.45); }
+        .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        @keyframes btnGradient { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .result-display { text-align: center; padding: 10px 0; min-height: 48px; display: flex; align-items: center; justify-content: center; transition: all 0.4s; }
+        .result-text { font-size: 1.3rem; font-weight: 700; color: #777; transition: color 0.3s; }
+        .result-display.winner .result-text { color: #22c55e; font-size: 1.5rem; }
+        .items-section { margin-top: 4px; }
+        .items-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .items-label { font-size: 0.8rem; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .items-btns { display: flex; gap: 6px; align-items: center; }
+        .btn-shuffle { background: rgba(120, 120, 120, 0.15); border: 1px solid rgba(120, 120, 120, 0.3); color: #999; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .btn-shuffle:hover { background: rgba(120, 120, 120, 0.25); border-color: #999; color: #bbb; }
+        .btn-shuffle svg { width: 14px; height: 14px; }
+        .btn-clear { background: rgba(120, 120, 120, 0.15); border: 1px solid rgba(120, 120, 120, 0.3); color: #999; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .btn-clear:hover { background: rgba(120, 120, 120, 0.3); border-color: #999; color: #bbb; }
+        .btn-clear svg { width: 14px; height: 14px; }
+        .btn-toggle-items { background: rgba(120, 120, 120, 0.15); border: 1px solid rgba(120, 120, 120, 0.3); color: #999; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .btn-toggle-items:hover { background: rgba(120, 120, 120, 0.3); border-color: #999; color: #bbb; }
+        .btn-toggle-items svg { width: 16px; height: 16px; }
+        .btn-toggle-items.eye-hidden svg { color: #666; }
+        .items-area { overflow: hidden; transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease; max-height: 500px; opacity: 1; padding-top: 2px; }
+        .items-area.hidden { max-height: 0; opacity: 0; padding-top: 0; overflow: hidden; }
+        .add-textarea { width: 100%; background: #333333; border: 1px solid #444; color: #e0e0e0; padding: 10px 12px; border-radius: 10px; font-size: 0.9rem; font-family: 'Inter', sans-serif; outline: none; resize: vertical; min-height: 60px; transition: border-color 0.2s; line-height: 1.5; margin-bottom: 10px; }
+        .add-textarea:focus { border-color: #ffffff; }
+        .add-textarea::placeholder { color: #777; }
+        .items-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; padding-right: 4px; margin-bottom: 8px; }
+        .items-list::-webkit-scrollbar { width: 5px; }
+        .items-list::-webkit-scrollbar-track { background: transparent; }
+        .items-list::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        .item-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 8px; background: #1b1b1b; transition: background 0.2s; animation: itemSlide 0.2s ease; }
+        @keyframes itemSlide { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        .item-row:hover { background: #252525; }
+        .item-color-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+        .item-text { flex: 1; font-size: 0.88rem; color: #ccc; word-break: break-word; cursor: pointer; transition: color 0.2s; }
+        .item-text:hover { color: #fff; }
+        .item-edit-input { flex: 1; background: #12121f; border: 1px solid #6366f1; color: #e0e0e0; padding: 3px 8px; border-radius: 6px; font-size: 0.88rem; font-family: 'Inter', sans-serif; outline: none; }
+        .btn-remove-item { background: none; border: none; color: #ef4444; width: 22px; height: 22px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; opacity: 0.3; font-size: 14px; }
+        .item-row:hover .btn-remove-item { opacity: 0.7; }
+        .btn-remove-item:hover { opacity: 1; background: rgba(239, 68, 68, 0.15); }
+        .hint-text { font-size: 0.75rem; color: #555; margin-top: 2px; text-align: center; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.25s; backdrop-filter: blur(4px); }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box { background: #1b1b1b; border: 1px solid #333333; border-radius: 16px; padding: 28px 24px; max-width: 340px; width: 90%; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.6); transform: scale(0.95); transition: transform 0.25s; }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+        .modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
+        .modal-text { color: #aaa; margin-bottom: 24px; font-size: 0.95rem; line-height: 1.4; }
+        .modal-actions { display: flex; gap: 12px; justify-content: center; }
+        .modal-btn { padding: 11px 22px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; transition: all 0.2s; }
+        .modal-btn.cancel { background: #2a2a40; color: #ccc; }
+        .modal-btn.cancel:hover { background: #3a3a55; }
+        .modal-btn.confirm { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+        .modal-btn.confirm:hover { opacity: 0.9; transform: translateY(-1px); }
+        .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; overflow: hidden; }
+        .confetti-piece { position: absolute; top: -20px; animation: confettiFall linear forwards; }
+        @keyframes confettiFall { 0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg) scale(0.3); opacity: 0; } }
+        @media (max-width: 500px) { .header h1 { font-size: 1.7rem; } .wheel-card { padding: 16px; } .wheel-title-input { width: 140px; font-size: 1rem; } }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>Колесо Фортуны</h1>
+</div>
+<div class="toolbar">
+    <button class="btn-add-wheel" onclick="addWheel()">+ Добавить колесо</button>
+    <button class="btn-delete-all" onclick="deleteAllWheels()">Удалить всё</button>
+</div>
+<div class="wheels-container" id="wheelsContainer"></div>
+<div class="confetti-container" id="confettiContainer"></div>
+<div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box">
+        <div class="modal-title" id="modal-title">Подтверждение</div>
+        <div class="modal-text" id="modal-text">Вы уверены?</div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" id="modal-cancel">Отмена</button>
+            <button class="modal-btn confirm" id="modal-confirm">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const COLORS = ['#f59e0b','#ef4444','#8b5cf6','#3b82f6','#ec4899','#14b8a6','#f97316','#6366f1','#06b6d4','#eab308','#a855f7','#10b981','#f43f5e','#0ea5e9','#d946ef','#84cc16','#f59e0b','#6366f1','#ef4444'];
+    let wheels = [];
+    let wheelIdCounter = 0;
+    let pendingConfirmCallback = null;
+    let audioCtx = null;
+
+    function getAudioCtx() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
+
+    function playTickSound() {
+        try {
+            const ctx = getAudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 900 + Math.random() * 500;
+            osc.type = 'sine';
+            gain.gain.value = 0.08;
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.06);
+        } catch(e) {}
+    }
+
+    function playResultSound() {
+        try {
+            const ctx = getAudioCtx();
+            const notes = [523.25, 659.25, 783.99, 1046.5];
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.value = 0.12;
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25);
+                osc.start(ctx.currentTime + i * 0.12);
+                osc.stop(ctx.currentTime + i * 0.12 + 0.25);
+            });
+        } catch(e) {}
+    }
+
+    function saveState() { try { localStorage.setItem('fortuneWheels', JSON.stringify({ wheels, wheelIdCounter })); } catch(e) {} }
+    function loadState() {
+        try {
+            const raw = localStorage.getItem('fortuneWheels');
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data?.wheels?.length > 0) { wheels = data.wheels; wheelIdCounter = data.wheelIdCounter || 0; return true; }
+            }
+        } catch(e) {}
+        return false;
+    }
+
+    function showConfirmDialog(title, message, callback) {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-text').textContent = message;
+        pendingConfirmCallback = callback;
+        document.getElementById('confirm-modal').classList.add('active');
+    }
+    document.getElementById('modal-cancel').addEventListener('click', () => { pendingConfirmCallback = null; document.getElementById('confirm-modal').classList.remove('active'); });
+    document.getElementById('modal-confirm').addEventListener('click', () => { pendingConfirmCallback?.(); pendingConfirmCallback = null; document.getElementById('confirm-modal').classList.remove('active'); });
+    document.getElementById('confirm-modal').addEventListener('click', e => { if (e.target === e.currentTarget) { pendingConfirmCallback = null; e.currentTarget.classList.remove('active'); } });
+
+    function createWheelData() { return { id: ++wheelIdCounter, name: '', items: [], rotation: 0, isSpinning: false, itemsVisible: true }; }
+    function addWheel() { wheels.push(createWheelData()); renderAllWheels(); saveState(); }
+    function removeWheel(id) { showConfirmDialog('Удалить колесо?', 'Вы уверены, что хотите удалить это колесо и все его варианты?', () => { wheels = wheels.filter(w => w.id !== id); renderAllWheels(); saveState(); }); }
+    function deleteAllWheels() {
+        if (wheels.length === 0) return;
+        showConfirmDialog('Удалить всё?', 'Все колёса и их варианты будут удалены.', () => {
+            wheels = [];
+            wheelIdCounter = 0;
+            renderAllWheels();
+            saveState();
+        });
+    }
+    function duplicateWheel(id) {
+        const orig = wheels.find(w => w.id === id);
+        if (!orig) return;
+        const newId = ++wheelIdCounter;
+        const copy = { id: newId, name: orig.name, items: [...orig.items], rotation: 0, isSpinning: false, itemsVisible: false };
+        wheels.push(copy);
+        renderAllWheels();
+        saveState();
+    }
+    function updateWheelName(id, name) { const w = wheels.find(w => w.id === id); if (w) { w.name = name; saveState(); } }
+    function toggleItemsVisibility(id) {
+        const w = wheels.find(w => w.id === id);
+        if (w) { w.itemsVisible = !w.itemsVisible; renderAllWheels(); saveState(); }
+    }
+
+    function parseAndAddItems(wheelId, text) {
+        const lines = text.split('\n');
+        const w = wheels.find(w => w.id === wheelId);
+        if (!w) return;
+        let added = false;
+        for (const line of lines) { if (line.trim()) { w.items.push(line.trim()); added = true; } }
+        if (added) { renderWheelItems(wheelId); drawWheel(w); saveState(); }
+    }
+
+    function handleTextareaInput(e, wheelId) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); parseAndAddItems(wheelId, e.target.value); e.target.value = ''; } }
+    function handleTextareaPaste(e, wheelId) { const text = e.clipboardData?.getData('text') || ''; if (text.trim()) { e.preventDefault(); parseAndAddItems(wheelId, text); e.target.value = ''; } }
+    function removeItem(wheelId, itemIndex) { const w = wheels.find(w => w.id === wheelId); if (w && w.items.length > 0) { w.items.splice(itemIndex, 1); renderWheelItems(wheelId); drawWheel(w); saveState(); } }
+    function clearAllItems(wheelId) {
+        const w = wheels.find(w => w.id === wheelId);
+        if (!w || w.items.length === 0) return;
+        showConfirmDialog('Очистить все варианты?', 'Все варианты будут удалены из этого колеса.', () => {
+            w.items = [];
+            renderWheelItems(wheelId);
+            drawWheel(w);
+            saveState();
+        });
+    }
+    function shuffleItems(wheelId) {
+        const w = wheels.find(w => w.id === wheelId);
+        if (!w || w.items.length < 2) return;
+        for (let i = w.items.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [w.items[i], w.items[j]] = [w.items[j], w.items[i]];
+        }
+        renderWheelItems(wheelId);
+        drawWheel(w);
+        saveState();
+    }
+    function updateItem(wheelId, itemIndex, newVal) {
+        const w = wheels.find(w => w.id === wheelId);
+        if (w && newVal.trim()) { w.items[itemIndex] = newVal.trim(); renderWheelItems(wheelId); drawWheel(w); saveState(); }
+        else if (w && !newVal.trim()) { renderWheelItems(wheelId); }
+    }
+
+    function spinWheel(id) {
+        const w = wheels.find(w => w.id === id);
+        if (!w || w.isSpinning || w.items.length < 2) return;
+        w.isSpinning = true;
+        const resultEl = document.getElementById('result-' + id);
+        resultEl.innerHTML = '<span class="result-text">Крутим...</span>';
+        resultEl.classList.remove('winner');
+        document.getElementById('spin-btn-' + id).disabled = true;
+        const extraSpins = 5 + Math.random() * 5;
+        const totalAngle = extraSpins * 360 + Math.random() * 360;
+        const startRotation = w.rotation;
+        const duration = 4000 + Math.random() * 2000;
+        const startTime = performance.now();
+        let lastTickSegment = -1;
+        function animate(now) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 4);
+            w.rotation = startRotation + totalAngle * eased;
+            drawWheel(w);
+
+            const segAngle = 360 / w.items.length;
+            const currentSeg = Math.floor(((w.rotation % 360 + 360) % 360) / segAngle);
+            if (currentSeg !== lastTickSegment) {
+                lastTickSegment = currentSeg;
+                playTickSound();
+            }
+
+            if (progress < 1) { requestAnimationFrame(animate); }
+            else {
+                w.isSpinning = false;
+                w.rotation = ((w.rotation % 360) + 360) % 360;
+                document.getElementById('spin-btn-' + id).disabled = false;
+                const rotationMod = w.rotation % 360;
+                const winnerIdx = Math.floor((360 - rotationMod) / segAngle) % w.items.length;
+                const winner = w.items[winnerIdx];
+                resultEl.innerHTML = '<span class="result-text">' + escapeHtml(winner) + '</span>';
+                resultEl.classList.add('winner');
+                launchConfetti();
+                playResultSound();
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+
+    function drawWheel(wheel) {
+        const canvas = document.getElementById('canvas-' + wheel.id);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+        const cx = rect.width / 2, cy = rect.height / 2, radius = Math.min(cx, cy) - 8;
+        ctx.clearRect(0, 0, rect.width, rect.height);
+        const items = wheel.items;
+
+        if (!items.length) {
+            ctx.beginPath(); ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#333333'; ctx.fill();
+            // Outer white border
+            ctx.beginPath(); ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 3; ctx.stroke();
+            // Inner white border
+            ctx.beginPath(); ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
+            ctx.fillStyle = '#1b1b1b'; ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2; ctx.stroke();
+            return;
+        }
+
+        const segAngle = (2 * Math.PI) / items.length;
+        const startAngle = (wheel.rotation - 90) * (Math.PI / 180);
+
+        // Draw segments
+        for (let i = 0; i < items.length; i++) {
+            const a1 = startAngle + i * segAngle, a2 = startAngle + (i + 1) * segAngle;
+            ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, a1, a2); ctx.closePath();
+            ctx.fillStyle = COLORS[i % COLORS.length]; ctx.fill();
+        }
+
+        // Outer white border
+        ctx.beginPath(); ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 3; ctx.stroke();
+
+        // Inner white border (center circle)
+        ctx.beginPath(); ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
+        ctx.fillStyle = '#1b1b1b'; ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2; ctx.stroke();
+
+        // Text
+        for (let i = 0; i < items.length; i++) {
+            const a1 = startAngle + i * segAngle;
+            ctx.save(); ctx.translate(cx, cy); ctx.rotate(a1 + segAngle / 2);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold ' + Math.min(15, Math.max(10, 160 / items.length)) + 'px Inter, sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            const text = items[i];
+            ctx.fillText(text.length > 14 ? text.substring(0, 12) + '…' : text, radius * 0.62, 0);
+            ctx.restore();
+        }
+    }
+
+    function renderWheelItems(wheelId) {
+        const list = document.getElementById('items-list-' + wheelId);
+        if (!list) return;
+        const w = wheels.find(w => w.id === wheelId);
+        if (!w) return;
+        list.innerHTML = '';
+        if (w.items.length === 0) { return; }
+        w.items.forEach((item, idx) => {
+            const row = document.createElement('div'); row.className = 'item-row';
+            const dot = document.createElement('div'); dot.className = 'item-color-dot'; dot.style.background = COLORS[idx % COLORS.length];
+            const textSpan = document.createElement('span'); textSpan.className = 'item-text'; textSpan.textContent = item;
+            const btn = document.createElement('button'); btn.className = 'btn-remove-item'; btn.innerHTML = '✕';
+            const wid = wheelId, iidx = idx;
+            textSpan.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                const input = document.createElement('input');
+                input.className = 'item-edit-input';
+                input.value = item;
+                textSpan.replaceWith(input);
+                input.focus();
+                input.select();
+                const finishEdit = () => { updateItem(wid, iidx, input.value); };
+                input.addEventListener('blur', finishEdit);
+                input.addEventListener('keydown', (ev) => {
+                    if (ev.key === 'Enter') input.blur();
+                    if (ev.key === 'Escape') renderWheelItems(wid);
+                });
+            });
+            btn.addEventListener('click', () => removeItem(wid, iidx));
+            row.append(dot, textSpan, btn); list.appendChild(row);
+        });
+    }
+
+    function renderAllWheels() {
+        const container = document.getElementById('wheelsContainer');
+        if (!wheels.length) { container.innerHTML = ''; return; }
+        container.innerHTML = '';
+        wheels.forEach(wheel => {
+            const card = document.createElement('div'); card.className = 'wheel-card';
+            const headerDiv = document.createElement('div'); headerDiv.className = 'wheel-card-header';
+            const titleInput = document.createElement('input'); titleInput.className = 'wheel-title-input'; titleInput.value = wheel.name;
+            titleInput.placeholder = 'Название колеса';
+            titleInput.addEventListener('change', function() { updateWheelName(wheel.id, this.value); });
+            const actionsDiv = document.createElement('div'); actionsDiv.className = 'wheel-actions';
+            const dupBtn = document.createElement('button'); dupBtn.className = 'btn-icon'; dupBtn.title = 'Дублировать колесо'; dupBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>'; dupBtn.addEventListener('click', () => duplicateWheel(wheel.id));
+            const delBtn = document.createElement('button'); delBtn.className = 'btn-icon btn-delete'; delBtn.title = 'Удалить колесо'; delBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>'; delBtn.addEventListener('click', () => removeWheel(wheel.id));
+            actionsDiv.append(dupBtn, delBtn);
+            headerDiv.append(titleInput, actionsDiv);
+
+            const wrapperDiv = document.createElement('div'); wrapperDiv.className = 'wheel-wrapper';
+            const pointerDiv = document.createElement('div'); pointerDiv.className = 'wheel-pointer';
+            const gId = 'ptrGrad_' + wheel.id;
+            pointerDiv.innerHTML = '<svg viewBox="0 0 36 40"><defs><linearGradient id="' + gId + '" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="50%" stop-color="#ef4444"><animate attributeName="offset" values="0.3;0.5;0.3" dur="1.5s" repeatCount="indefinite"/></stop><stop offset="100%" stop-color="#f59e0b"><animate attributeName="stop-color" values="#f59e0b;#ef4444;#f59e0b" dur="1.5s" repeatCount="indefinite"/></stop><animate attributeName="gradientTransform" values="0,0 1,0 1,1 0,1; 1,0 2,0 2,1 1,1; 0,0 1,0 1,1 0,1" dur="1.5s" repeatCount="indefinite"/></linearGradient></defs><polygon points="18,38 6,8 18,16 30,8" fill="url(#' + gId + ')" stroke="#fff" stroke-width="1.5"/></svg>';
+            const canvas = document.createElement('canvas'); canvas.className = 'wheel-canvas'; canvas.id = 'canvas-' + wheel.id;
+            wrapperDiv.append(pointerDiv, canvas);
+
+            const spinBtn = document.createElement('button'); spinBtn.className = 'spin-btn'; spinBtn.id = 'spin-btn-' + wheel.id; spinBtn.textContent = 'Крутить!'; spinBtn.addEventListener('click', () => spinWheel(wheel.id));
+            const resultDiv = document.createElement('div'); resultDiv.className = 'result-display'; resultDiv.id = 'result-' + wheel.id;
+            resultDiv.innerHTML = '<span class="result-text">Нажмите «Крутить» для результата</span>';
+
+            const itemsSection = document.createElement('div'); itemsSection.className = 'items-section';
+            const itemsHeader = document.createElement('div'); itemsHeader.className = 'items-header';
+            const itemsLabel = document.createElement('span'); itemsLabel.className = 'items-label'; itemsLabel.textContent = 'Варианты';
+            const itemsBtns = document.createElement('div'); itemsBtns.className = 'items-btns';
+            const toggleBtn = document.createElement('button'); toggleBtn.className = 'btn-toggle-items' + (wheel.itemsVisible ? '' : ' eye-hidden'); toggleBtn.title = wheel.itemsVisible ? 'Скрыть варианты' : 'Показать варианты';
+            toggleBtn.innerHTML = wheel.itemsVisible
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+            toggleBtn.addEventListener('click', () => toggleItemsVisibility(wheel.id));
+            const shuffleBtn = document.createElement('button'); shuffleBtn.className = 'btn-shuffle'; shuffleBtn.title = 'Перемешать'; shuffleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>'; shuffleBtn.addEventListener('click', () => shuffleItems(wheel.id));
+            const clearBtn = document.createElement('button'); clearBtn.className = 'btn-clear'; clearBtn.title = 'Очистить все варианты'; clearBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'; clearBtn.addEventListener('click', () => clearAllItems(wheel.id));
+            itemsBtns.append(toggleBtn, shuffleBtn, clearBtn);
+            itemsHeader.append(itemsLabel, itemsBtns);
+            itemsSection.appendChild(itemsHeader);
+
+            const itemsArea = document.createElement('div');
+            itemsArea.className = 'items-area' + (wheel.itemsVisible ? '' : ' hidden');
+
+            const textarea = document.createElement('textarea'); textarea.className = 'add-textarea';
+            textarea.placeholder = 'Введите варианты (Enter — добавить, или вставьте список)...'; textarea.rows = 2;
+            const wid = wheel.id;
+            textarea.addEventListener('keydown', e => handleTextareaInput(e, wid));
+            textarea.addEventListener('paste', e => handleTextareaPaste(e, wid));
+            itemsArea.appendChild(textarea);
+
+            const itemsList = document.createElement('div'); itemsList.className = 'items-list'; itemsList.id = 'items-list-' + wheel.id;
+            itemsArea.appendChild(itemsList);
+
+            const hint = document.createElement('div'); hint.className = 'hint-text'; hint.textContent = 'Enter для добавления • Двойной клик для редактирования';
+            itemsArea.appendChild(hint);
+
+            itemsSection.appendChild(itemsArea);
+            card.append(headerDiv, wrapperDiv, spinBtn, resultDiv, itemsSection);
+            container.appendChild(card);
+
+            renderWheelItems(wheel.id);
+            setTimeout(() => drawWheel(wheel), 80);
+        });
+    }
+
+    function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+    function launchConfetti() {
+        const container = document.getElementById('confettiContainer');
+        const colors = ['#f59e0b','#ef4444','#8b5cf6','#3b82f6','#ec4899','#14b8a6'];
+        for (let i = 0; i < 60; i++) {
+            const c = colors[Math.floor(Math.random() * colors.length)], sz = 6 + Math.random() * 10, left = Math.random() * 100, delay = Math.random() * 0.5, dur = 1.5 + Math.random() * 2, shape = Math.random() > 0.5 ? '50%' : '2px';
+            const piece = document.createElement('div'); piece.className = 'confetti-piece';
+            piece.style.cssText = 'left:' + left + '%;width:' + sz + 'px;height:' + (sz * 0.6) + 'px;background:' + c + ';border-radius:' + shape + ';animation-delay:' + delay + 's;animation-duration:' + dur + 's;';
+            container.appendChild(piece);
+            setTimeout(() => piece.remove(), (delay + dur) * 1000 + 100);
+        }
+    }
+
+    let resizeTimeout;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(() => wheels.forEach(w => drawWheel(w)), 100); });
+
+    loadState();
+    renderAllWheels();
+</script>
+</body>
+</html>
+
